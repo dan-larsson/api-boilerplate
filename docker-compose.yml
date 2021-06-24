@@ -1,0 +1,27 @@
+version: "3.5"
+services:
+  app:
+    build:
+      args:
+        FLASK_ENV: development
+        FLASK_APP: main.py
+      context: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./:/opt/app
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://api-boilerplate:secret@db:5432/api-boilerplate
+      - FLASK_ENV=development
+      - FLASK_APP=main.py
+    depends_on:
+      - db
+
+  db:
+    restart: always
+    build:
+      context: ./db
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_USER: api-boilerplate
+      POSTGRES_DB: api-boilerplate
