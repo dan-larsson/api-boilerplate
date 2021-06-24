@@ -1,5 +1,9 @@
 NAME:=api-boilerplate
 
+.PHONY: pyclean
+pyclean:
+	@find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
+
 .PHONY: clean
 clean: 
 	@docker system prune -a
