@@ -4,8 +4,12 @@ NAME:=api-boilerplate
 pyclean:
 	@find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
 
+.PHONY: down
+down:
+	@docker-compose down
+
 .PHONY: clean
-clean: 
+clean: down 
 	@docker system prune -a
 
 .PHONY: build-app
@@ -41,3 +45,9 @@ psql:
 			-P footer=on \
 			-v COMP_KEYWORD_CASE=upper \
 			-v PROMPT1="%[%033[33;1m%]%x%[%033[0m%]%[%033[1m%]%n%[%033[0m%]%R%# "
+
+
+.PHONY: pg-dump
+pg-dump:
+	@PGPASSWORD=secret NAME=${NAME} docker-compose exec db \
+		pg_dump -U api-boilerplate --schema-only api-boilerplate

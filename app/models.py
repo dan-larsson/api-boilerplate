@@ -1,8 +1,14 @@
 import enum
 from datetime import datetime
-from app import db
-from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from authlib.integrations.sqla_oauth2 import (
+    OAuth2ClientMixin,
+    OAuth2TokenMixin,
+    OAuth2AuthorizationCodeMixin,
+)
+
+db = SQLAlchemy()
 
 
 class PostStatus(enum.Enum):
@@ -25,8 +31,16 @@ class PostModel(db.Model):
     def __repr__(self):
         return f"<PostModel {self.post_id}>"
 
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
 
-class UserModel(UserMixin, db.Model):
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+
+
+class UserModel(db.Model):
     __tablename__ = 'users'
 
     user_id = db.Column(db.Integer, primary_key=True)
@@ -40,6 +54,13 @@ class UserModel(UserMixin, db.Model):
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def get_user_id(self):
+        return self.user_id
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -83,3 +104,45 @@ class UserModel(UserMixin, db.Model):
         if user is None or user.token_expiration < datetime.utcnow():
             return None
         return user
+
+
+class Client(db.Model, OAuth2ClientMixin):
+    __tablename__ = 'oauth_clients'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete='CASCADE'))
+    user = db.relationship('UserModel')
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+
+class Token(db.Model, OAuth2TokenMixin):
+    __tablename__ = 'oauth_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete='CASCADE'))
+    user = db.relationship('UserModel')
+
+    def is_refresh_token_active(self):
+        if self.revoked:
+            return False
+        expires_at = self.issued_at + self.expires_in * 2
+        return expires_at >= time.time()
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+
+class AuthorizationCode(db.Model, OAuth2AuthorizationCodeMixin):
+    __tablename__ = 'oauth_auth_codes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete='CASCADE'))
+    user = db.relationship('UserModel')
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()

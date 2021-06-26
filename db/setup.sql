@@ -12,13 +12,13 @@ END;
 $$
 LANGUAGE 'plpgsql';
 
-CREATE TYPE enum_post_status AS ENUM
+CREATE TYPE public.enum_post_status AS ENUM
 (
   'published',
   'hidden'
 );
 
-CREATE TABLE users
+CREATE TABLE public.users
 (
   user_id SERIAL PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -37,7 +37,7 @@ CREATE TRIGGER update_user_modified_at
   BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE PROCEDURE update_modified_at();
 
-CREATE TABLE posts
+CREATE TABLE public.posts
 (
   post_id SERIAL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -51,6 +51,43 @@ CREATE TABLE posts
 CREATE TRIGGER update_post_modified_at
   BEFORE UPDATE ON posts
   FOR EACH ROW EXECUTE PROCEDURE update_modified_at();
+
+CREATE TABLE public.oauth_auth_codes (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(120) NOT NULL,
+    client_id VARCHAR(48),
+    redirect_uri TEXT,
+    response_type TEXT,
+    scope TEXT,
+    nonce TEXT,
+    auth_time INTEGER NOT NULL,
+    code_challenge TEXT,
+    code_challenge_method VARCHAR(48),
+    user_id INTEGER REFERENCES users(user_id)
+);
+
+CREATE TABLE public.oauth_clients (
+    id SERIAL PRIMARY KEY,
+    client_id VARCHAR(48),
+    client_secret VARCHAR(120),
+    client_id_issued_at INTEGER NOT NULL,
+    client_secret_expires_at INTEGER NOT NULL,
+    client_metadata TEXT,
+    user_id INTEGER REFERENCES users(user_id)
+);
+
+CREATE TABLE public.oauth_tokens (
+    id SERIAL PRIMARY KEY,
+    client_id VARCHAR(48),
+    token_type VARCHAR(40),
+    access_token VARCHAR(255) NOT NULL,
+    refresh_token VARCHAR(255),
+    scope TEXT,
+    revoked boolean,
+    issued_at INTEGER NOT NULL,
+    expires_in INTEGER NOT NULL,
+    user_id INTEGER REFERENCES users(user_id)
+);
 
 INSERT INTO 
   posts (status, published_at, subject, body)
